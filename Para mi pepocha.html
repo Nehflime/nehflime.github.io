@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Regalo de casi aniversario</title>
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  overflow-x: hidden;
+  position: relative;
+}
+#backgroundCanvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}
+.container {
+  margin-top: 50px;
+  position: relative;
+  z-index: 1;
+}
+.hidden { display: none; }
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 10px;
+  background-color: #ff66a3;
+  color: white;
+  cursor: pointer;
+  margin: 5px;
+}
+input[type=range] {
+  width: 300px;
+}
+#lockContainer {
+  transition: opacity 1s;
+  opacity: 0;
+}
+#lockContainer.show {
+  opacity: 1;
+}
+#lockContainer img {
+  width: 100px;
+  cursor: pointer;
+}
+#finalMessage {
+  font-size: 24px;
+  margin-top: 30px;
+  position: relative;
+}
+#orchidCanvas {
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 2;
+}
+.next-btn {
+  display: none;
+  margin-top: 10px;
+}
+</style>
+</head>
+<body>
+
+<canvas id="backgroundCanvas"></canvas>
+<div class="container">
+  <h1>💌 Tengo algo para ti 💌</h1>
+  <p>Pero primero debes resolver un par de retos, amor mío, guapa, bella, hermosa</p>
+
+  <!-- Puzzle 1 -->
+  <div id="puzzle1">
+    <h2>Acertijo 1</h2>
+    <p>¿Dónde fue nuestra primera cita?</p>
+    <input type="text" id="answer1" placeholder="Tu respuesta">
+    <button onclick="checkPuzzle1()">Responder</button>
+    <p id="result1"></p>
+    <button id="next1" class="next-btn" onclick="goNext(1)">Siguiente</button>
+  </div>
+
+  <!-- Puzzle 2 -->
+  <div id="puzzle2" class="hidden">
+    <h2>Acertijo 2</h2>
+    <p>¿Cuánto crees que te amo?</p>
+    <input type="range" min="1" max="100" value="50" id="loveRange" oninput="updateRangeValue()">
+    <span id="rangeValue">50</span>
+    <br>
+    <button onclick="checkPuzzle2()">Enviar</button>
+    <p id="result2"></p>
+    <button id="next2" class="next-btn" onclick="goNext(2)">Siguiente</button>
+  </div>
+
+  <!-- Puzzle 3 -->
+  <div id="puzzle3" class="hidden">
+    <h2>Acertijo 3</h2>
+    <p>Deberás de armar la contraseña esta vez jiji</p>
+    <div id="binaryButtons"></div>
+    <p id="finalBinaryMessage" class="hidden">¿Entonces cuál es la contraseña?</p>
+    <p id="binaryTranslation" class="hidden">01000101 01110010 01100101 01110011 01001100 01100001 01010000 01100101 01110010 01110011 01101111 01101110 01100001 01001101 11000011 10100011 01110011 01000101 01110011 01110000 01100101 01100011 01101001 01100001 01101100 01000100 01100101 00100000 01101101 01101001 00100000 01110110 01101001 01100100 01100001</p>
+    <div id="finalChoices" class="hidden">
+      <button onclick="checkFinalChoice(this)">Contraseña</button>
+      <button onclick="checkFinalChoice(this)">Te amo</button>
+      <button onclick="checkFinalChoice(this)">Son 20 pesos</button>
+      <button onclick="checkFinalChoice(this)">Eres la persona más especial de mi vida</button>
+    </div>
+    <p id="finalResult"></p>
+    <button id="next3" class="next-btn" onclick="goNext(3)">Siguiente</button>
+  </div>
+
+  <!-- Candado -->
+  <div id="lockContainer" class="hidden">
+    <img src="https://cdn-icons-png.flaticon.com/512/61/61457.png" onclick="openLock()">
+    <p id="lockMessage" class="hidden">Lista para tu sorpresa?</p>
+    <div id="lockButtons" class="hidden">
+      <button onclick="surpriseNo()">No</button>
+      <button onclick="surpriseYes()">Sí</button>
+    </div>
+  </div>
+
+  <!-- Área de sorpresa -->
+  <div id="surpriseArea" class="hidden">
+    <canvas id="orchidCanvas" width="600" height="200"></canvas>
+    <p id="finalMessage">Hola mi amooooor. Te gustó tu regalo?<br>
+Me encantó hacer esto para ti, y no quiero irme sin antes decirte un par de cositas.<br>
+Gracias por todo, realmente han sido 11 maravillosos meses, preciosos. Todo este tiempo contigo realmente he tenido las experiencias más maravillosas de mi vida, las más locas, las más bonitas. He crecido como persona, como novio, como amigo y espero poder crecer todavía mucho más a tu lado, crecer como tu futuro esposo.<br>
+Te amo más que a nada en esta existencia.<br>
+En ti he sido capaz de encontrar todo lo bueno que este planeta tiene por ofrecer.<br>
+En ti he encontrado a una amiga.<br>
+En ti encontré luz.<br>
+En ti encontré el camino.<br>
+En ti ncontré la vida.<br>
+A ti te encontré. Encontré en ti al amor de mi vida </p>
+<p id="timerMessage">Tiempo que ha pasado desde el 25 de abril de 2025:</p>
+<p id="timeElapsed" style="font-size:20px; font-weight:bold;"></p>
+    <button onclick="restartGift()">Quiero volver a ver mi regalo</button>
+  </div>
+
+</div>
+
+<script>
+// Canvas de fondo
+const canvas = document.getElementById('backgroundCanvas');
+const ctx = canvas.getContext('2d');
+function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; drawField(); }
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+function drawField() { 
+  ctx.fillStyle = '#cceeff'; 
+  ctx.fillRect(0, 0, canvas.width, canvas.height); 
+  ctx.fillStyle = '#99cc66'; 
+  ctx.fillRect(0, canvas.height * 0.6, canvas.width, canvas.height * 0.4); 
+  for (let i=0;i<80;i++){ 
+    let x=Math.random()*canvas.width; 
+    let y=canvas.height*0.6+Math.random()*canvas.height*0.4; 
+    if(Math.random()>0.5){drawGerbera(x,y);}else{drawOrchid(x,y);} 
+  } 
+}
+function drawGerbera(x,y){
+  for(let i=0;i<10;i++){
+    let angle=(Math.PI*2/10)*i;
+    let px=x+Math.cos(angle)*8;
+    let py=y+Math.sin(angle)*8;
+    ctx.beginPath();
+    ctx.arc(px,py,4,0,Math.PI*2);
+    ctx.fillStyle='pink';
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.arc(x,y,4,0,Math.PI*2);
+  ctx.fillStyle='yellow';
+  ctx.fill();
+}
+function drawOrchid(x,y){
+  ctx.fillStyle='#cc66ff';
+  ctx.beginPath();
+  ctx.arc(x,y,5,0,Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(x+8,y,6,4,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(x-8,y,6,4,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(x,y+8,4,6,0,0,Math.PI*2);
+  ctx.fill();
+}
+
+// Puzzle 1
+function checkPuzzle1(){ 
+  const answer=document.getElementById('answer1').value.toLowerCase(); 
+  if(answer.includes('sendero')){ 
+    document.getElementById('result1').innerText='¡Correcto! 💕 Pero está muy wacakala ese lugar jiji';
+    document.getElementById('next1').style.display='inline-block';
+  } else{ 
+    document.getElementById('result1').innerText='Cómo q no sabes'; 
+  } 
+}
+
+// Puzzle 2
+function updateRangeValue(){ 
+  const range=document.getElementById('loveRange'); 
+  const display=document.getElementById('rangeValue'); 
+  display.innerText=range.value==100?'∞':range.value; 
+}
+function checkPuzzle2(){ 
+  const range=document.getElementById('loveRange'); 
+  const result=document.getElementById('result2'); 
+  if(range.value==100){ 
+    result.innerText='¡Correcto! ❤️ Te amo hasta el fin de la existencia misma, de regreso y de ida una y mil veces';
+    document.getElementById('next2').style.display='inline-block';
+  } else{ 
+    result.innerText='No solo estás equivocada...'; 
+  } 
+}
+
+// Puzzle 3
+const binaryWords=[
+  {word:'Eres',bin:'01000101 01110010 01100101 01110011',link:'https://youtu.be/ffwWRqpmUc8?si=5TLxml76u06Sx_Ad'},
+  {word:'La',bin:'01001100 01100001',link:'https://youtu.be/cX-WgQ88EQc?si=DScKiFKsA-wR8O6B'},
+  {word:'Persona',bin:'01010000 01100101 01110010 01110011 01101111 01101110 01100001',link:'https://youtu.be/WJxSNbAer9M?si=GfC9z--S0LwnqGoO'},
+  {word:'Más',bin:'01001101 11000011 10100011 01110011',link:'https://youtu.be/P_fAHEbOyt8?si=OO4_OLSSAoAddHAF'},
+  {word:'Especial',bin:'01000101 01110011 01110000 01100101 01100011 01101001 01100001 01101100',link:'https://youtu.be/NKhw0qOLMms?si=lMj7Zeu9EK-18V6v'},
+  {word:'De mi vida',bin:'01000100 01100101 00100000 01101101 01101001 00100000 01110110 01101001 01100100 01100001',link:'https://youtu.be/QSwDEL2sssU?si=uB5wMArqJd-acjqc'}
+];
+let currentIndex=0;
+
+function startBinaryPuzzle(){ showNextBinaryButton(); }
+
+function showNextBinaryButton(){
+  const btnContainer = document.getElementById('binaryButtons');
+  if(currentIndex >= binaryWords.length){
+    document.getElementById('finalBinaryMessage').classList.remove('hidden');
+    document.getElementById('binaryTranslation').classList.remove('hidden');
+    document.getElementById('finalChoices').classList.remove('hidden');
+    return;
+  }
+  const btn = document.createElement('button');
+  btn.innerText = binaryWords[currentIndex].bin; 
+  btn.onclick = function(){
+    window.open(binaryWords[currentIndex].link,'_blank');
+    currentIndex++;
+    btnContainer.innerHTML='';
+    showNextBinaryButton();
+  }
+  btnContainer.appendChild(btn);
+}
+
+function checkFinalChoice(el){
+  const finalResult = document.getElementById('finalResult');
+  const lockContainer = document.getElementById('lockContainer');
+  if(el.innerText === 'Eres la persona más especial de mi vida'){
+    finalResult.innerText = '¡Correctooooo!';
+    document.getElementById('next3').style.display='inline-block';
+  } else {
+    finalResult.innerText = 'Casi le atinas! Solo te falta aprender binario';
+  }
+}
+
+// Función para ir al siguiente puzzle
+function goNext(num){
+  if(num===1){
+    document.getElementById('puzzle1').classList.add('hidden');
+    document.getElementById('puzzle2').classList.remove('hidden');
+  }
+  if(num===2){
+    document.getElementById('puzzle2').classList.add('hidden');
+    document.getElementById('puzzle3').classList.remove('hidden');
+    startBinaryPuzzle();
+  }
+  if(num===3){
+    document.getElementById('puzzle3').classList.add('hidden');
+    document.getElementById('lockContainer').classList.remove('hidden');
+    setTimeout(()=>document.getElementById('lockContainer').classList.add('show'), 50);
+  }
+}
+
+// Candado y sorpresa
+function openLock(){
+  document.getElementById('lockMessage').classList.remove('hidden');
+  document.getElementById('lockButtons').classList.remove('hidden');
+}
+function surpriseNo(){ window.location.href='https://www.google.com'; }
+function surpriseYes(){
+  document.getElementById('lockContainer').classList.add('hidden');
+  document.getElementById('surpriseArea').classList.remove('hidden');
+  startBackgroundLoop();
+  startOrchidAnimation();
+}
+
+// Animación guirnalda
+const orchidCanvas = document.getElementById('orchidCanvas');
+const octx = orchidCanvas.getContext('2d');
+let orchids = [];
+function startOrchidAnimation(){
+  orchids = [];
+  for(let i=0;i<15;i++){
+    orchids.push({x:i*40, y:200, targetY:Math.random()*50 + 20, size:0});
+  }
+  requestAnimationFrame(animateOrchids);
+}
+function animateOrchids(){
+  octx.clearRect(0,0,orchidCanvas.width,orchidCanvas.height);
+  orchids.forEach(o=>{
+    if(o.size<1) o.size+=0.02;
+    o.y -= (o.y - o.targetY)*0.05;
+    octx.fillStyle = '#cc66ff';
+    octx.beginPath();
+    octx.arc(o.x,o.y,5*o.size,0,Math.PI*2);
+    octx.fill();
+  });
+  requestAnimationFrame(animateOrchids);
+}
+
+function startBackgroundLoop(){
+  setInterval(drawField,2000);
+}
+
+// Reinicio
+function restartGift(){
+  document.getElementById('puzzle1').classList.remove('hidden');
+  document.getElementById('puzzle2').classList.add('hidden');
+  document.getElementById('puzzle3').classList.add('hidden');
+  document.getElementById('lockContainer').classList.remove('show');
+  document.getElementById('lockContainer').classList.add('hidden');
+  document.getElementById('surpriseArea').classList.add('hidden');
+  document.getElementById('result1').innerText='';
+  document.getElementById('result2').innerText='';
+  document.getElementById('finalResult').innerText='';
+  document.getElementById('binaryButtons').innerHTML='';
+  document.getElementById('finalChoices').classList.add('hidden');
+  document.getElementById('finalBinaryMessage').classList.add('hidden');
+  document.getElementById('binaryTranslation').classList.add('hidden');
+  document.getElementById('lockMessage').classList.add('hidden');
+  document.getElementById('lockButtons').classList.add('hidden');
+  orchids = [];
+  octx.clearRect(0,0,orchidCanvas.width,orchidCanvas.height);
+  currentIndex=0;
+  document.getElementById('next1').style.display='none';
+  document.getElementById('next2').style.display='none';
+  document.getElementById('next3').style.display='none';
+}
+
+// Cronómetro desde el 25 de abril de 2025 (hora de México Central)
+function startChronometer() {
+  const timerEl = document.getElementById('timeElapsed');
+
+  function updateTimer() {
+    const now = new Date();
+    // Convertir hora local a México Central (UTC-6)
+    const utcNow = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+    const mxOffset = -6; // UTC-6
+    const mxNow = new Date(utcNow.getTime() + mxOffset*60*60*1000);
+
+    const startDate = new Date('2025-04-25T00:00:00-06:00'); // 25 de abril 2025, 00:00 México Central
+    let diff = mxNow - startDate; // diferencia en ms
+
+    const days = Math.floor(diff / (1000*60*60*24));
+    diff -= days*1000*60*60*24;
+    const hours = Math.floor(diff / (1000*60*60));
+    diff -= hours*1000*60*60;
+    const minutes = Math.floor(diff / (1000*60));
+    diff -= minutes*1000*60;
+    const seconds = Math.floor(diff / 1000);
+
+    timerEl.innerText = `${days} días, ${hours} h, ${minutes} m, ${seconds} s`;
+  }
+
+  updateTimer();
+  setInterval(updateTimer, 1000);
+}
+
+// Iniciar cronómetro automáticamente cuando se muestre la sorpresa
+function surpriseYes(){
+  document.getElementById('lockContainer').classList.add('hidden');
+  document.getElementById('surpriseArea').classList.remove('hidden');
+  startBackgroundLoop();
+  startOrchidAnimation();
+  startChronometer(); // <-- aquí se activa el cronómetro
+}
+</script>
+</body>
+</html>
